@@ -4,9 +4,11 @@ Date   : 2024-05-27
 Purpose: GUI integrating my Rosalind solutions
 """
 
+import os
 import ttkbootstrap as tb
 from ttkbootstrap.constants import *
 from ttkbootstrap.dialogs import Messagebox
+from tkinter.filedialog import askdirectory, askopenfilename
 import standard_funcs
 
 
@@ -29,12 +31,15 @@ def main() -> None:
     # Create tabs for each rosalind solution
     basics_tab = tb.Frame(notebook)
     notebook.add(basics_tab, text='Basics')
+    basics_tab.grid_propagate = False
 
     fib_tab = tb.Frame(notebook)
     notebook.add(fib_tab, text='Fib')
+    fib_tab.grid_propagate = False
 
-    inh_tab = tb.Frame(notebook)
-    notebook.add(inh_tab, text='Inh')
+    motif_tab = tb.Frame(notebook)
+    notebook.add(motif_tab, text='Fastas')
+    motif_tab.grid_propagate = False
 
     # Basics tab
     def basic_count():
@@ -181,11 +186,11 @@ def main() -> None:
                                f'  gen {"": <2} rabbits {newline}' 
                                f'{newline.join(f"  {i+1: <6} {standard_funcs.fibd(i+1, int(months), int(litter))[0]: <2}" for i in range(int(gen))[-10:])}')
 
-    fib_exp = tb.Frame(fib_tab, height=350, width=970, bootstyle="dark")
-    fib_exp.grid(row=0, column=0, padx=10, pady=10)
+    fib_exp = tb.Frame(fib_tab, height=350, width=1000, bootstyle="dark")
+    fib_exp.grid(row=0, column=0, padx=10, pady=10, sticky='w')
     fib_exp.grid_propagate(False)
 
-    fib_text = tb.Text(fib_exp, font='Calibri, 15', height=15, width=96)
+    fib_text = tb.Text(fib_exp, font='Calibri, 15', height=15, width=100)
     fib_text.pack(fill='both', expand='True')
     fib_text.insert('1.0', 'Calculates the number of rabbit pairs after n months, supposing each pair takes one month\nto mature, ' +
                        'can mate once a month and always produces a litter of the same size. \n\n' +
@@ -230,6 +235,84 @@ def main() -> None:
     fib_results = tb.Label(fib_inpout, bootstyle='default', text='Number of rabbits: ')
     fib_results.grid(row=0, column=0, sticky='nswe')
 
+
+    #motif tab
+    def browse_dirs():
+        """ Open directory browser """
+
+        global path
+        path = os.path.dirname(askopenfilename(title="Browse directory", 
+                                               filetypes=(
+                                                   ('FASTA files', ('*.fasta', '*.fa', '*.fna', '*.faa')),
+                                                   ('FASTQ files', ('*.fastq', '*.fq')))))
+        path_ent.delete(0, 'end')
+        path_ent.insert(0, path)
+
+        global fastx_files
+        fastx_files = [os.path.join(path, file) for file in os.listdir(path) 
+                       if os.path.isfile(os.path.join(path, file)) 
+                       and standard_funcs.guess_format(f'{file}') in ['fasta', 'fastq']]
+
+        motif_output.config(state='normal')
+        motif_output.delete('1.0', 'end')
+        motif_output.insert('1.0', standard_funcs.list_seqinfo(fastx_files))
+        motif_output.config(state='disabled')
+
+    motif_exp = tb.Frame(motif_tab, height=350, width=950, bootstyle="dark")
+    motif_exp.grid(row=0, column=0, padx=10, pady=10, columnspan=2)
+    motif_exp.grid_propagate(False)
+
+    motif_text = tb.Text(motif_exp, font='Calibri, 15', height=15, width=94)
+    motif_text.pack(fill='both', expand='True', anchor='center')
+    motif_text.insert('1.0', 'Some operations for handling multiple sequences.\n' 
+                      'Selecting any file will read out all fastX files in the directory. \n\n'
+                      'Motif:\nFind the given motif in all sequences '
+                      '(https://rosalind.info/problems/subs/)\n\n'
+                      'Consensus: \nFind the consensus string of sequences of equal length '
+                      '(https://rosalind.info/problems/cons/)\n\n'
+                      'Graph: \nFind the overlap graphs of all sequences '
+                      '(https://rosalind.info/problems/grph/)\n\n'
+                      'Substring: \nFind the longest common substring in all sequences '
+                      '(https://rosalind.info/problems/lcsm/)\n\n'
+                      'Superstring: \nFind the shortest superstring containing all given sequences '
+                      '(https://rosalind.info/problems/long/)')
+    motif_text.config(state=DISABLED)
+
+    #Input frame
+    motif_inp = tb.Frame(motif_tab, borderwidth=10, height=50, width=950, bootstyle="dark")
+    motif_inp.grid(row=1, column=0, padx=10, pady=10, columnspan=2)
+    motif_inp.grid_propagate(False)
+
+    #Path input
+    path = os.getcwd()
+    path_row = tb.Frame(motif_inp)
+    path_row.pack(fill='both', expand='True')
+    path_lbl = tb.Label(path_row, text="Fasta dir:", width=10)
+    path_lbl.pack(side='left', padx=10)
+    path_ent = tb.Entry(path_row, width=80)
+    path_ent.pack(side='left', fill='both', expand='True', padx=5)
+    path_ent.insert(0, path)
+    browse_btn = tb.Button(
+        master=path_row, 
+        text="Browse", 
+        command=browse_dirs, 
+        width=8
+    )
+    browse_btn.pack(side='right', padx=10)
+
+    #Button frame
+    motif_but = tb.Frame(motif_tab, height=270, width=270, bootstyle="dark")
+    motif_but.grid(row=2, column=0, sticky='nw', padx=10, pady=10)
+    motif_but.grid_propagate = False
+
+    #Output frame
+    motif_out = tb.Frame(motif_tab, height=270, width=900, bootstyle="dark")
+    motif_out.grid(row=2, column=1, pady=10, sticky='nw')
+    motif_out.grid_propagate = False
+
+    motif_output = tb.Text(motif_out, height=15, width=60, font=('Calibri',13))
+    motif_output.pack()
+    motif_output.configure(state='disabled')
 
     root.mainloop()
 

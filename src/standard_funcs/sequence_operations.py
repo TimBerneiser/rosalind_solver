@@ -9,6 +9,7 @@ import re
 import sys
 from itertools import zip_longest
 import pandas as pd
+from Bio import Seq
 
 
 # --------------------------------------------------
@@ -195,6 +196,53 @@ def get_graphs(sequences: Dict[str, str], overlap: int) -> List[Tuple[str, str]]
 
 
 # --------------------------------------------------
+def generate_perms(permutable):
+    """ Generator for all permutations """
+
+    if type(permutable) == list:
+        permutable = ''.join(str(x) for x in permutable)
+
+    if not type(permutable) == str:
+        permutable = str(permutable) 
+
+    if len(permutable) <= 1:
+        yield permutable 
+        return
+
+    for i in range(len(permutable)):
+        for perm in generate_perms(''.join([permutable[i+1:], permutable[:i]])):
+            yield permutable[i] + perm
+
+
+# --------------------------------------------------
+def locate_palis(seq: str, low=4, high=12) -> List[Tuple[int, int]]:
+    """ Takes a sequence and returns length and INDEX of all palindromes """
+
+    pali_positions = []
+
+    for k in range(low, high+1):
+        position = 0
+        for i in get_kmers(seq, k):
+            if Seq.reverse_complement(i) == i:
+                pali_positions.append((position, k))
+            position += 1
+
+    return sorted(pali_positions, key=lambda x: x[0])
+
+
+# --------------------------------------------------
+def get_spliced(sequence: str, introns: list) -> str:
+    """ Get spliced sequence """
+
+    spliced = sequence
+
+    for _, intron in enumerate(introns):
+        spliced = re.sub(intron, '', spliced, re.IGNORECASE)
+
+    return spliced
+
+
+# --------------------------------------------------
 def test_is_xNA() -> None:
     """ Test is_DNA, is_RNA, is_NA """
 
@@ -313,3 +361,33 @@ def test_find_motifs() -> None:
     assert find_motifs('ABCDEFGABC', 'ABC') == [0, 7]
     assert find_motifs('ABCDEFGABC', 'ZZ') == []
     assert find_motifs('', 'ABCDEFG') == []
+
+
+# --------------------------------------------------
+def test_generate_perms() -> None:
+    """ Test generate_perms """
+
+    assert list(generate_perms('')) == ['']
+    assert list(generate_perms('12')) == ['12', '21']
+    assert list(generate_perms('AB')) == ['AB', 'BA']
+    assert list(generate_perms(15)) == ['15', '51']
+    assert list(generate_perms([1, 2, 'A'])) == ['12A', '1A2', '2A1', '21A', 'A12', 'A21']
+
+
+# --------------------------------------------------
+def test_locate_palis() -> None:
+    """ Test locate_palis """
+
+    assert locate_palis('') == []
+    assert locate_palis('CATATCAATATGACAGT') == [(1, 4), (7, 4)]
+    assert locate_palis('CTCAATGCATGCGGGTCTATATGCAT') == [(4, 6), (5, 4), (6, 6), (7, 4),
+                                                         (17, 4), (18, 4), (20, 6), (21, 4)]
+
+
+# --------------------------------------------------
+def test_get_spliced() -> None:
+    """ Test get_spliced """
+
+    assert get_spliced('ABCDEFGAAAHIJKLMBBBBBBNOP', ['AAA', 'BBBBBB']) == 'ABCDEFGHIJKLMNOP'
+    assert get_spliced('ABC', []) == 'ABC'
+    assert get_spliced('', ['ABC', 'BCD']) == ''
