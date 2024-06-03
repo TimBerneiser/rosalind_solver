@@ -5,3 +5,6 @@ Be aware that it serves mostly as an exercise for myself in working with github 
 
 https://github.com/TimBerneiser/rosalind_solver
 
+## To Do
+
+Add functionality to the rest of the buttons in the fasta tab
