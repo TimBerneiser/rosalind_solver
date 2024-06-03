@@ -3,6 +3,7 @@ Author : Tim Berneiser
 Date   : 2024-05-27
 Purpose: Functions for handling fastx files
 """
+
 from typing import Dict, List
 import os
 import statistics

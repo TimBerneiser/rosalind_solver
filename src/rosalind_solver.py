@@ -9,6 +9,7 @@ import ttkbootstrap as tb
 from ttkbootstrap.constants import *
 from ttkbootstrap.dialogs import Messagebox
 from tkinter.filedialog import askdirectory, askopenfilename
+from PIL import ImageTk, Image
 import standard_funcs
 
 
@@ -40,6 +41,10 @@ def main() -> None:
     motif_tab = tb.Frame(notebook)
     notebook.add(motif_tab, text='Fastas')
     motif_tab.grid_propagate = False
+
+    graph_tab = tb.Frame(notebook)
+    notebook.add(graph_tab, text='Graph')
+    graph_tab.grid_propagate = False
 
     # Basics tab
     def basic_count():
@@ -253,16 +258,60 @@ def main() -> None:
                        if os.path.isfile(os.path.join(path, file)) 
                        and standard_funcs.guess_format(f'{file}') in ['fasta', 'fastq']]
 
+        global seq_info
+        seq_info = standard_funcs.list_seqinfo(fastx_files)
+
         motif_output.config(state='normal')
         motif_output.delete('1.0', 'end')
-        motif_output.insert('1.0', standard_funcs.list_seqinfo(fastx_files))
+        motif_output.insert('1.0', seq_info)
         motif_output.config(state='disabled')
+
+        global input_sequences
+        input_sequences = standard_funcs.extract_seqs(fastx_files)
+
+    def motif_click():
+        """ Find motif """
+
+        motif_positions = {}
+
+        for id in input_sequences:
+            motif_positions[id] = standard_funcs.find_motifs(input_sequences[id], motif_input.get())
+
+        motif_output.config(state='normal')
+        motif_output.delete('1.0', 'end')
+        motif_output.insert('1.0', f'{seq_info}\n\n\n\n')
+        motif_output.insert('end', f'Start indexes of motif {motif_input.get()}:\n\n')
+        for id in motif_positions:
+            motif_output.insert('end', f'{id}: {", ".join(str(x) for x in motif_positions[id])}\n')
+        motif_output.config(state='disabled')
+
+    def consensus_click():
+        """ Find consensus sequence """
+
+        seqs_list = [input_sequences[id] for id in input_sequences]
+    
+        consensus = standard_funcs.find_consensus(seqs_list)
+    
+        motif_output.config(state='normal')
+        motif_output.delete('1.0', 'end')
+        motif_output.insert('1.0', f'{seq_info}\n\n\n\n')
+        motif_output.insert('end', f'Consensus sequence:\n\n')
+        motif_output.insert('end', consensus)
+        motif_output.config(state='disabled')
+
+    def substring_click():
+        """ Find longest substring """
+        return
+
+    def superstring_click():
+        """ Find superstring """
+        return
 
     motif_exp = tb.Frame(motif_tab, height=350, width=950, bootstyle="dark")
     motif_exp.grid(row=0, column=0, padx=10, pady=10, columnspan=2)
     motif_exp.grid_propagate(False)
 
-    motif_text = tb.Text(motif_exp, font='Calibri, 15', height=15, width=94)
+    motif_text = tb.Text(motif_exp, font='Calibri, 15', height=15, width=97)
     motif_text.pack(fill='both', expand='True', anchor='center')
     motif_text.insert('1.0', 'Some operations for handling multiple sequences.\n' 
                       'Selecting any file will read out all fastX files in the directory. \n\n'
@@ -270,8 +319,6 @@ def main() -> None:
                       '(https://rosalind.info/problems/subs/)\n\n'
                       'Consensus: \nFind the consensus string of sequences of equal length '
                       '(https://rosalind.info/problems/cons/)\n\n'
-                      'Graph: \nFind the overlap graphs of all sequences '
-                      '(https://rosalind.info/problems/grph/)\n\n'
                       'Substring: \nFind the longest common substring in all sequences '
                       '(https://rosalind.info/problems/lcsm/)\n\n'
                       'Superstring: \nFind the shortest superstring containing all given sequences '
@@ -305,14 +352,133 @@ def main() -> None:
     motif_but.grid(row=2, column=0, sticky='nw', padx=10, pady=10)
     motif_but.grid_propagate = False
 
+    #Buttons
+    motif_button = tb.Button(motif_but, bootstyle='light', width=15, text='Find motif', command=motif_click)
+    motif_button.pack(pady=8,padx=10, anchor='w')
+
+    motif_input = tb.Entry(motif_but, width=19, font=('Calibri', 15))
+    motif_input.pack(pady=2, padx=10, anchor='w')
+
+    consensus_button = tb.Button(motif_but, bootstyle='light', width=15, text='Consensus', command=consensus_click)
+    consensus_button.pack(pady=8, padx=10, anchor='w')
+
+    substring_button = tb.Button(motif_but, bootstyle='light', width=15, text='Substring', command=substring_click)
+    substring_button.pack(pady=8, padx=10, anchor='w')
+
+    superstring_button = tb.Button(motif_but, bootstyle='light', width=15, text='Superstring', command=superstring_click)
+    superstring_button.pack(pady=8, padx=10, anchor='w')
+
     #Output frame
     motif_out = tb.Frame(motif_tab, height=270, width=900, bootstyle="dark")
     motif_out.grid(row=2, column=1, pady=10, sticky='nw')
     motif_out.grid_propagate = False
 
-    motif_output = tb.Text(motif_out, height=15, width=60, font=('Calibri',13))
+    motif_output = tb.Text(motif_out, height=15, width=66, font=('Calibri',13), wrap=CHAR)
     motif_output.pack()
     motif_output.configure(state='disabled')
+
+    #Graph tab
+    def browse_file():
+        """ Open single FASTA file """
+
+        file_path = askopenfilename(title="Browse directory", 
+                               filetypes=(('FASTA files', ('*.fasta', '*.fa', '*.fna', '*.faa')),
+                                          ('FASTQ files', ('*.fastq', '*.fq'))))
+        graph_path_ent.delete(0, 'end')
+        graph_path_ent.insert(0, file_path)
+
+        if standard_funcs.guess_format(f'{file_path}') not in ['fasta', 'fastq'] and not file_path.rstrip() == '':
+            Messagebox.ok('Not a valid fastx file.', 'Invalid input')
+            return
+
+        input_sequences = standard_funcs.extract_seqs([file_path])
+
+        overlap = graph_overlap_ent.get()
+        overlap = overlap.rstrip()
+
+        if not overlap.isdigit():
+            Messagebox.ok('Not a valid overlap. Enter a positive integer.', 'Invalid input')
+            return
+        else:
+            overlap = int(overlap)
+
+        dot = standard_funcs.visualize_graphs(standard_funcs.list_overlaps(input_sequences, overlap))
+        overlap_graph = f'{os.path.join(os.path.dirname(file_path), "out")}'
+        dot.render(overlap_graph, view=open_image_var.get(), format='png')
+
+        graph_image = Image.open(f'{overlap_graph}.png')
+
+        if not open_image_var.get():
+            base_width = 680
+            wpercent = (base_width / float(graph_image.size[0]))
+            hsize = int((float(graph_image.size[1]) * float(wpercent)))
+            graph_image = graph_image.resize((base_width, hsize), Image.Resampling.LANCZOS)
+
+            graph_image = ImageTk.PhotoImage(graph_image)
+            graph_image_lbl.config(image=graph_image)
+            graph_image_lbl.image = graph_image
+            graph_image_lbl.pack(side='top', fill='both', expand='true')
+
+        if not open_image_var.get():
+            os.remove(f'{overlap_graph}.png')
+            os.remove(f'{overlap_graph}')
+
+
+    graph_exp = tb.Frame(graph_tab, borderwidth=10, height=50, width=1000, bootstyle="dark")
+    graph_exp.pack(padx=10, pady=10, anchor='w')
+
+    graph_text = tb.Text(graph_exp, font='Calibri, 15', height=4, width=200)
+    graph_text.pack(fill='both', expand=True)
+    graph_text.insert('1.0', 'Create an overlap graph from the given sequences in FASTX format. Images are saved to a file\n'
+                      'and opened by default. Check the box to print to the app instead (does not work well for large graphs).\n' 
+                      'https://rosalind.info/problems/grph/')
+    graph_text.config(state=DISABLED)
+
+    graph_inp = tb.Frame(graph_tab, borderwidth=10, height=500, width=1000, bootstyle="dark")
+    graph_inp.pack(padx=10, pady=5, anchor='w', fill='both', expand=True)
+
+    graph_left = tb.Frame(graph_inp, height=480, width=200, borderwidth=5, bootstyle='dark')
+    graph_left.grid(row=0, column=0, pady=10, padx=5, sticky='nw')
+    graph_left.grid_propagate = False
+
+    graph_right = tb.Frame(graph_inp, height=480, width=750, borderwidth=5, bootstyle='dark')
+    graph_right.grid(row=0, column=1, pady=10, padx=5, sticky='e')
+
+
+    graph_path_lbl = tb.Label(graph_left, text="Fastx file:", width=10)
+    graph_path_lbl.pack(padx=10, pady=10, side='top', anchor='nw')
+    graph_path_ent = tb.Entry(graph_left, width=30)
+    graph_path_ent.pack(padx=10, pady=5, side='top', anchor='nw')
+    graph_path_ent.insert(0, path)
+    graph_browse_btn = tb.Button(
+        master=graph_left, 
+        text="Browse", 
+        command=browse_file, 
+        width=8
+    )
+    graph_browse_btn.pack(padx=10, pady=2, side='top', anchor='nw')
+
+    overlap_frame = tb.Frame(graph_left)
+    overlap_frame.pack(padx=10, pady=20, side='top', anchor='nw')
+
+    graph_overlap_lbl = tb.Label(overlap_frame, text='Overlap: ', width=14)
+    graph_overlap_lbl.grid(column=0, row=0, pady=10, sticky='nw')
+
+    graph_overlap_ent = tb.Entry(overlap_frame, width=2)
+    graph_overlap_ent.grid(column=1, row=0, pady=10, padx=10, sticky='e')
+
+    image_options_frame = tb.Frame(graph_left)
+    image_options_frame.pack(padx=10, side='top', anchor='nw')
+
+    open_image_lbl = tb.Label(image_options_frame, text='Save output?', width=12)
+    open_image_lbl.grid(row=0, column=0, pady=5, sticky='nw')
+
+    open_image_var = tb.BooleanVar(value = True)
+    open_image_check = tb.Checkbutton(image_options_frame, variable=open_image_var)
+    open_image_check.grid(row=0, column=1, padx=25, pady=5, sticky='e')
+
+    graph_image_lbl = tb.Label(graph_right, image='')
+
 
     root.mainloop()
 
