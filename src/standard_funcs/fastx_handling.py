@@ -32,9 +32,10 @@ def guess_format(filename: str) -> str:
 def extract_seqs(files: List[str]) -> Dict[str, str]:
     """ Extract sequences from list of fastx files """
 
+    sequences = {}
     for fh in files:
         if seqs:= [rec for rec in SeqIO.parse(fh, guess_format(fh))]:
-            sequences = {seq.id: str(seq.seq) for seq in seqs}
+            sequences.update({seq.id: str(seq.seq) for seq in seqs})
 
     return sequences
 

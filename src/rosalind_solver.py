@@ -14,48 +14,143 @@ import standard_funcs
 
 
 # --------------------------------------------------
-def main() -> None:
-    """ Make a jazz noise here """
+class RosalindSolver(tb.Window):
+    def __init__(self):
 
-    root = tb.Window(themename='solar')
-    root.title('Rosalind Solver')
-    root.geometry('1024x768')
+        # main setup
+        super().__init__(themename='solar')
+        self.title('')
+        self.title('Rosalind Solver')
+        self.geometry('1024x768')
+        button_style = tb.Style()
+        button_style.configure('.', font=('Calibri', 15, 'bold'))
 
-    # Styles
-    button_style = tb.Style()
-    button_style.configure('.', font=('Calibri', 15, 'bold'))
+        # notebook setup
+        Notebook(self)
 
-    # Create notebook 
-    notebook = tb.Notebook(root, bootstyle = "dark")
-    notebook.pack(padx=10, pady=10)
 
-    # Create tabs for each rosalind solution
-    basics_tab = tb.Frame(notebook)
-    notebook.add(basics_tab, text='Basics')
-    basics_tab.grid_propagate = False
+class Notebook(tb.Notebook):
+    def __init__(self, parent):
+        super().__init__(parent, bootstyle='dark')
 
-    fib_tab = tb.Frame(notebook)
-    notebook.add(fib_tab, text='Fib')
-    fib_tab.grid_propagate = False
+        # Basics tab
+        basics_tab = self.Page(self, 'Basics')
+        Explanation(basics_tab, 'Basic operations on nucleic acid sequences.\n\n\n'
+                                'Count: Counts all bases (https://rosalind.info/problems/dna/)\n\n'
+                                'Transcribe: Transcribes DNA into RNA (https://rosalind.info/problems/rna/)\n\n'
+                                'Rev complement: Gives the reverse complement (https://rosalind.info/problems/revc/)\n\n'
+                                'GC content: Calculates the GC content (https://rosalind.info/problems/gc/)\n\n'
+                                'Translate: Translates a DNA or RNA sequence, irrespective of ORF, start, or stop\n(https://rosalind.info/problems/prot/)', 
+                                0.5)
+        basics_output = tb.Frame(basics_tab)
+        basics_output.place(x=0, rely=0.51, relwidth=1, relheight=0.49)
+        BasicsTab(basics_output)
 
-    motif_tab = tb.Frame(notebook)
-    notebook.add(motif_tab, text='Fastas')
-    motif_tab.grid_propagate = False
+        # Fib tab
+        fib_tab = self.Page(self, 'Fib')
+        Explanation(fib_tab,    'Calculates the number of rabbit pairs after n months, supposing each pair takes one month\nto mature, ' +
+                                'can mate once a month and always produces a litter of the same size. \n\n' +
+                                'https://rosalind.info/problems/fib/ \n\n\n\n' +
+                                'Optionally, we can assume rabbits die after a defined number of months. \n\n' + 
+                                'https://rosalind.info/problems/fibd/', 
+                                0.4)
+        fib_output = tb.Frame(fib_tab)
+        fib_output.place(x=0, rely=0.41, relwidth=1, relheight=0.59)
+        FibTab(fib_output)
 
-    graph_tab = tb.Frame(notebook)
-    notebook.add(graph_tab, text='Graph')
-    graph_tab.grid_propagate = False
+        # Fasta tab
+        fastas_tab = self.Page(self, 'Fastas')
+        Explanation(fastas_tab, 'Some operations for handling multiple sequences.\n' 
+                                'Selecting any file will read out all fastX files in the directory. \n\n'
+                                'Motif:\nFind the given motif in all sequences '
+                                '(https://rosalind.info/problems/subs/)\n\n'
+                                'Consensus: \nFind the consensus string of sequences of equal length '
+                                '(https://rosalind.info/problems/cons/)\n\n'
+                                'Substring: \nFind the longest common substring in all sequences '
+                                '(https://rosalind.info/problems/lcsm/)\n\n'
+                                'Superstring: \nFind the shortest superstring containing all given sequences '
+                                '(https://rosalind.info/problems/long/)',
+                                0.5)
+        fastas_output = tb.Frame(fastas_tab)
+        fastas_output.place(x=0, rely=0.51, relwidth=1, relheight=0.49)
+        FastasTab(fastas_output)
 
-    # Basics tab
-    def basic_count():
+        # Graph tab
+        graph_tab = self.Page(self, 'Graph')
+        Explanation(graph_tab,  'Create an overlap graph from the given sequences in FASTX format. Images are saved to a file\n'
+                                'and opened by default. Check the box to print to the app instead (does not work well for large graphs).\n\n' 
+                                'https://rosalind.info/problems/grph/',
+                    0.2)
+        graph_output = tb.Frame(graph_tab)
+        graph_output.place(x=0, rely=0.21, relwidth=1, relheight=0.79)
+        GraphTab(graph_output)
+
+        self.pack(padx=10, pady=10, anchor='nw', fill='both', expand=True)
+
+    class Page(tb.Frame):
+        def __init__(self, parent, tab_name):
+            super().__init__(parent)
+            parent.add(self, text=tab_name)
+
+class Explanation(tb.Frame):
+    """ Insert explanation frame """
+
+    def __init__(self, parent, expl_text, rel_height):
+        super().__init__(parent, borderwidth=10, bootstyle='dark')
+
+        self.place(x = 0, y = 0, relwidth=1, relheight= rel_height)
+
+        self.expl_text = tb.Text(self, font='Calibri, 15')
+        self.expl_text.pack(fill='both', expand=True)
+        self.expl_text.insert('1.0', expl_text)
+        self.expl_text.config(state=DISABLED)
+
+class BasicsTab(tb.Frame):
+    """ Input output for basics tab """
+
+    def __init__(self, parent):
+        super().__init__(parent, borderwidth=10, bootstyle='dark')
+        self.pack(fill='both', expand=True)
+
+        # Input field
+        self.entry = tb.ScrolledText(self, height=6, width=130)
+        self.entry.pack(fill='both', expand=True)
+        self.entry.insert(1.0, 'Enter DNA sequence')
+
+        # Row of buttons
+        self.buttons_frame = tb.Frame(self)
+        self.buttons_frame.pack(anchor='w')
+
+        basecount_button = tb.Button(self.buttons_frame, bootstyle="light", text="Count bases", command=self.basic_count)
+        basecount_button.grid(row=1, column=0, pady=5, padx=5)
+
+        transcribe_button = tb.Button(self.buttons_frame, bootstyle="light", text="Transcribe", command=self.basic_transcribe)
+        transcribe_button.grid(row=1, column=1, pady=15, padx=5, sticky='W')
+
+        revc_button = tb.Button(self.buttons_frame, bootstyle="light", text="Rev complement", command=self.basic_revc)
+        revc_button.grid(row=1, column=2, pady=15, padx=5, sticky='W')
+
+        gc_button = tb.Button(self.buttons_frame, bootstyle="light", text="GC content", command=self.basic_gc)
+        gc_button.grid(row=1, column=3, pady=15, padx=5, sticky='W')
+
+        translate_button = tb.Button(self.buttons_frame, bootstyle="light", text="Translate", command=self.basic_translate)
+        translate_button.grid(row=1, column=4, pady=15, padx=5, sticky='W')
+
+        # Output field
+        self.output = tb.ScrolledText(self, height=6, width=130)
+        self.output.pack(fill='both', expand=True)
+        self.output.config(state=DISABLED)
+
+    # Button commands
+    def basic_count(self):
         """ Count bases in entry on button press """
 
         out = ''
 
-        if not standard_funcs.is_NA(basics_entry.get("1.0", "end-1c").rstrip('\n')):
+        if not standard_funcs.is_NA(self.entry.get('1.0', 'end-1c').rstrip('\n')):
             out = "(this doesn't seem to be a nucleic acid sequence)\n"
 
-        counts = standard_funcs.count_bases(basics_entry.get("1.0", "end-1c").rstrip('\n'))
+        counts = standard_funcs.count_bases(self.entry.get('1.0', 'end-1c').rstrip('\n'))
 
         if counts:
             max_width = len(str(max(counts.values())))+1
@@ -66,106 +161,105 @@ def main() -> None:
         for key in counts:
             out += f'{counts[key]: <{max_width}}'
 
-        basics_out.config(state='normal')
-        basics_out.delete('1.0', 'end')
-        basics_out.insert('1.0', f'{out}')
-        basics_out.config(state=DISABLED)
+        self.output.config(state='normal')
+        self.output.delete('1.0', 'end')
+        self.output.insert('1.0', f'{out}')
+        self.output.config(state=DISABLED)
 
-    def basic_transcribe():
+    def basic_transcribe(self):
         """ Transcribe entry on button press """
 
         out = 'Not a valid nucleic acid sequence'
-        if standard_funcs.is_NA(basics_entry.get('1.0', 'end-1c').rstrip('\n')):
-            out = standard_funcs.transcribe(basics_entry.get("1.0", "end-1c").rstrip('\n'))
+        if standard_funcs.is_NA(self.entry.get('1.0', 'end-1c').rstrip('\n')):
+            out = standard_funcs.transcribe(self.entry.get("1.0", "end-1c").rstrip('\n'))
 
-        basics_out.config(state='normal')
-        basics_out.delete('1.0', 'end')
-        basics_out.insert('1.0', f'{out}')
-        basics_out.config(state=DISABLED)
+        self.output.config(state='normal')
+        self.output.delete('1.0', 'end')
+        self.output.insert('1.0', f'{out}')
+        self.output.config(state=DISABLED)
 
-    def basic_revc():
+    def basic_revc(self):
         """ Revc of entry on button press """
 
         out = 'Not a valid nucleic acid sequence'
-        if standard_funcs.is_NA(basics_entry.get('1.0', 'end-1c').rstrip('\n')):
-            out = standard_funcs.get_revc(basics_entry.get("1.0", "end-1c").rstrip('\n'))
+        if standard_funcs.is_NA(self.entry.get('1.0', 'end-1c').rstrip('\n')):
+            out = standard_funcs.get_revc(self.entry.get("1.0", "end-1c").rstrip('\n'))
 
-        basics_out.config(state='normal')
-        basics_out.delete('1.0', 'end')
-        basics_out.insert('1.0', f'{out}')
-        basics_out.config(state=DISABLED)
+        self.output.config(state='normal')
+        self.output.delete('1.0', 'end')
+        self.output.insert('1.0', f'{out}')
+        self.output.config(state=DISABLED)
 
-    def basic_gc():
+    def basic_gc(self):
         """ Compute GC of entry on button press """
 
         out = 'Not a valid nucleic acid sequence'
-        if standard_funcs.is_NA(basics_entry.get('1.0', 'end-1c').rstrip('\n')):
-            out = standard_funcs.get_gc(basics_entry.get("1.0", "end-1c").rstrip('\n'))
+        if standard_funcs.is_NA(self.entry.get('1.0', 'end-1c').rstrip('\n')):
+            out = standard_funcs.get_gc(self.entry.get("1.0", "end-1c").rstrip('\n'))
 
-        basics_out.config(state='normal')
-        basics_out.delete('1.0', 'end')
-        basics_out.insert('1.0', f'{out}')
-        basics_out.config(state=DISABLED)
+        self.output.config(state='normal')
+        self.output.delete('1.0', 'end')
+        self.output.insert('1.0', f'{out}')
+        self.output.config(state=DISABLED)
 
-    def basic_translate():
+    def basic_translate(self):
         """ Translate entry on button press """
 
         out = 'Not a valid nucleic acid sequence'
-        if standard_funcs.is_NA(basics_entry.get('1.0', 'end-1c').rstrip('\n')):
-            out = standard_funcs.translate(basics_entry.get("1.0", "end-1c").rstrip('\n'))
+        if standard_funcs.is_NA(self.entry.get('1.0', 'end-1c').rstrip('\n')):
+            out = standard_funcs.translate(self.entry.get("1.0", "end-1c").rstrip('\n'))
 
-        basics_out.config(state='normal')
-        basics_out.delete('1.0', 'end')
-        basics_out.insert('1.0', f'{out}')
-        basics_out.config(state=DISABLED)
+        self.output.config(state='normal')
+        self.output.delete('1.0', 'end')
+        self.output.insert('1.0', f'{out}')
+        self.output.config(state=DISABLED)
 
+class FibTab(tb.Frame):
+    """ Input output for Fib tab """
 
-    basics_exp = tb.Frame(basics_tab, borderwidth=10, height=200, width=1000, bootstyle="dark")
-    basics_exp.pack(padx=10, pady=10, anchor='w')
+    def __init__(self, parent):
+        super().__init__(parent, borderwidth=10, bootstyle='dark')
+        self.pack(fill='both', expand=True)
 
-    basics_text = tb.Text(basics_exp, font='Calibri, 15', height=15, width=200)
-    basics_text.pack(fill='both', expand=True)
-    basics_text.insert('1.0', 'Basic operations on nucleic acid sequences.\n\n\n'
-                       'Count: Counts all bases (https://rosalind.info/problems/dna/)\n\n'
-                       'Transcribe: Transcribes DNA into RNA (https://rosalind.info/problems/rna/)\n\n'
-                       'Rev complement: Gives the reverse complement (https://rosalind.info/problems/revc/)\n\n'
-                       'GC content: Calculates the GC content (https://rosalind.info/problems/gc/)\n\n'
-                       'Translate: Translates a DNA or RNA sequence, irrespective of ORF, start, or stop\n(https://rosalind.info/problems/prot/)')
-    basics_text.config(state=DISABLED)
+        # Input frame
+        self.input_frame = tb.Frame(self, bootstyle='dark', borderwidth=10)
+        self.input_frame.place(x=0, rely=0.1, relheight=1, relwidth=0.4)
 
-    basics_inp = tb.Frame(basics_tab, borderwidth=10, height=500, width=1000, bootstyle="dark")
-    basics_inp.pack(padx=10, pady=5, anchor='w')
+        self.litterlabel = tb.Label(self.input_frame, bootstyle='default', text='Litter size')
+        self.litterlabel.grid(row=0, column=0, sticky="W")
 
-    basics_entry = tb.ScrolledText(basics_inp, height=6, width=130)
-    basics_entry.grid(row=0, column=0, columnspan=6, sticky='W')
+        self.litterentry = tb.Entry(self.input_frame, bootstyle='default', width=2)
+        self.litterentry.grid(row=0, column=1, padx=20, sticky="E")
 
-    basecount_button = tb.Button(basics_inp, bootstyle="light", text="Count bases", command=basic_count)
-    basecount_button.grid(row=1, column=0, pady=5, sticky='W')
+        self.genlabel = tb.Label(self.input_frame, bootstyle='default', text='Generations')
+        self.genlabel.grid(row=1, column=0, sticky="W")
 
-    transcribe_button = tb.Button(basics_inp, bootstyle="light", text="Transcribe", command=basic_transcribe)
-    transcribe_button.grid(row=1, column=1, pady=5, sticky='W')
+        self.genentry = tb.Entry(self.input_frame, bootstyle='default', width=2)
+        self.genentry.grid(row=1, column=1, pady=15, padx=20, sticky="E")
 
-    revc_button = tb.Button(basics_inp, bootstyle="light", text="Rev complement", command=basic_revc)
-    revc_button.grid(row=1, column=2, pady=5, sticky='W')
+        self.deathlabel = tb.Label(self.input_frame, bootstyle='default', text='Months until death')
+        self.deathlabel.grid(row=2, column=0, sticky="W")
 
-    gc_button = tb.Button(basics_inp, bootstyle="light", text="GC content", command=basic_gc)
-    gc_button.grid(row=1, column=3, pady=5, sticky='W')
+        self.deathentry = tb.Entry(self.input_frame, bootstyle='default', width=2)
+        self.deathentry.grid(row=2, column=1, padx=20, sticky="E")
 
-    translate_button = tb.Button(basics_inp, bootstyle="light", text="Translate", command=basic_translate)
-    translate_button.grid(row=1, column=4, sticky='W')
+        self.calc_button = tb.Button(self.input_frame, bootstyle="default", text='Calculate', command=self.calc_fib)
+        self.calc_button.grid(row=3, column=0, columnspan=3, pady=40)
 
-    basics_out = tb.ScrolledText(basics_inp, height=6, width=130)
-    basics_out.config(state=DISABLED)
-    basics_out.grid(row=2, column=0, columnspan=6, sticky='W')
+        # Output frame
+        self.output_frame = tb.Frame(self, bootstyle='dark')
+        self.output_frame.place(y=0, relx=0.4, relheight=1, relwidth=0.6)
+        
+        self.results = tb.Label(self.output_frame, bootstyle='default', text='Number of rabbits', anchor='nw', padding=15)
+        self.results.pack(anchor='nw', expand=True, fill='both')
+            #Output box
 
-
-    #fib tab
-    def fib_calc():
+    def calc_fib(self):
         """ Calculates fibonacci from entries """
 
-        litter = fib_litterentry.get()
-        gen = fib_genentry.get()
-        months = fib_deathentry.get()
+        litter = self.litterentry.get()
+        gen = self.genentry.get()
+        months = self.deathentry.get()
 
         if not litter.isdigit() or not gen.isdigit():
             Messagebox.ok(f'Please enter only natural numbers.', 'Invalid input')
@@ -182,76 +276,112 @@ def main() -> None:
         newline ="\n"
 
         if not months:
-            fib_results.config(text=f'Number of rabbits:{newline*2}'
-                               f'  gen {"": <2} rabbits {newline}' 
+            self.results.config(text=f'Number of rabbits:{newline*2}'
+                               f'  gen {"": <2} rabbits {newline*2}' 
                                f'{newline.join(f"  {i+1: <6} {standard_funcs.fib(i+1, int(litter)): <2}" for i in range(int(gen))[-10:])}')
 
         if months:
-            fib_results.config(text=f'Number of rabbits:{newline*2}'
-                               f'  gen {"": <2} rabbits {newline}' 
+            self.results.config(text=f'Number of rabbits:{newline*2}'
+                               f'  gen {"": <2} rabbits {newline*2}' 
                                f'{newline.join(f"  {i+1: <6} {standard_funcs.fibd(i+1, int(months), int(litter))[0]: <2}" for i in range(int(gen))[-10:])}')
 
-    fib_exp = tb.Frame(fib_tab, height=350, width=1000, bootstyle="dark")
-    fib_exp.grid(row=0, column=0, padx=10, pady=10, sticky='w')
-    fib_exp.grid_propagate(False)
+class FastasTab(tb.Frame):
+    """Input output for fastas tab"""
 
-    fib_text = tb.Text(fib_exp, font='Calibri, 15', height=15, width=100)
-    fib_text.pack(fill='both', expand='True')
-    fib_text.insert('1.0', 'Calculates the number of rabbit pairs after n months, supposing each pair takes one month\nto mature, ' +
-                       'can mate once a month and always produces a litter of the same size. \n\n' +
-                       'https://rosalind.info/problems/fib/ \n\n\n\n' +
-                       'Optionally, we can assume rabbits die after a defined number of months. \n\n' + 
-                       'https://rosalind.info/problems/fibd/')
-    fib_text.config(state=DISABLED)
+    def __init__(self, parent):
+        super().__init__(parent, borderwidth=10, bootstyle='dark')
+        self.pack(fill='both', expand=True)
 
-    fib_inp = tb.Frame(fib_tab, borderwidth=10, height=350, width=970, bootstyle="dark")
-    fib_inp.grid(row=1, column=0, padx=10, pady=10)
-    fib_inp.grid_propagate(False)
+        # Path input row
+        path_frame = tb.Frame(self, borderwidth=10, bootstyle='dark')
+        path_frame.pack(anchor='n')
+        dir_label = tb.Label(path_frame, text="Fasta dir:", width=10)
+        dir_label.pack(side='left', padx=10)
+        self.dir_entry = tb.Entry(path_frame, width=80)
+        self.dir_entry.pack(side='left', padx=5)
+        self.dir_entry.insert(0, os.getcwd())
+        browse_btn = tb.Button(
+        master=path_frame, 
+        text="Browse", 
+        command=self.browse_dirs, 
+        width=8)
+        browse_btn.pack(side='right', padx=10)
 
-    fib_inpinp = tb.Frame(fib_inp, bootstyle="dark", height=275, width=550)
-    fib_inpinp.grid(row=0, column=0, padx=5, pady=40, sticky="w")
-    fib_inpinp.grid_propagate = False
+        # Output frame
+        output_frame = tb.Frame(self, borderwidth=10, bootstyle='dark')
+        output_frame.pack(fill='both', expand=True)
 
-    fib_litterlabel = tb.Label(fib_inpinp, bootstyle='default', text='Litter size')
-    fib_litterlabel.grid(row=0, column=0, sticky="W")
+        # Buttons
+        buttons_frame = tb.Frame(output_frame, borderwidth=10, bootstyle='dark')
+        buttons_frame.place(x=0, y=0, relheight=1, relwidth=0.3)
 
-    fib_litterentry = tb.Entry(fib_inpinp, bootstyle='default', width=2)
-    fib_litterentry.grid(row=0, column=1, padx=20, sticky="E")
+        motif_button = tb.Button(buttons_frame, bootstyle='light', width=15, text='Find motif', command=self.motif_click)
+        motif_button.pack(pady=2,padx=10, anchor='nw')
 
-    fib_genlabel = tb.Label(fib_inpinp, bootstyle='default', text='Generations')
-    fib_genlabel.grid(row=1, column=0, sticky="W")
+        self.motif_input = tb.Entry(buttons_frame, width=19, font=('Calibri', 15))
+        self.motif_input.pack(pady=2, padx=10, anchor='nw')
 
-    fib_genentry = tb.Entry(fib_inpinp, bootstyle='default', width=2)
-    fib_genentry.grid(row=1, column=1, pady=15, padx=20, sticky="E")
+        consensus_button = tb.Button(buttons_frame, bootstyle='light', width=15, text='Consensus', command=self.consensus_click)
+        consensus_button.pack(pady=8, padx=10, anchor='nw')
 
-    fib_deathlabel = tb.Label(fib_inpinp, bootstyle='default', text='Months until death')
-    fib_deathlabel.grid(row=2, column=0, sticky="W")
+        substring_button = tb.Button(buttons_frame, bootstyle='light', width=15, text='Substring', command=self.substring_click)
+        substring_button.pack(pady=8, padx=10, anchor='nw')
 
-    fib_deathentry = tb.Entry(fib_inpinp, bootstyle='default', width=2)
-    fib_deathentry.grid(row=2, column=1, padx=20, sticky="E")
+        superstring_button = tb.Button(buttons_frame, bootstyle='light', width=15, text='Superstring', command=self.superstring_click)
+        superstring_button.pack(pady=8, padx=10, anchor='nw')
 
-    fib_calc_button = tb.Button(fib_inpinp, bootstyle="default", text='Calculate', command=fib_calc)
-    fib_calc_button.grid(row=3, column=0, columnspan=3, pady=40)
+        # Output
+        self.output = tb.Text(output_frame, font=('Calibri', 13), wrap=CHAR)
+        self.output.place(y=0, relx=0.3, relheight=1, relwidth=0.7)
+        self.output.configure(state='disabled')
 
-    fib_inpout = tb.Frame(fib_inp, bootstyle='light', width=400, height=275)
-    fib_inpout.grid(row=0, column=1, padx=50, pady=5, sticky="nw")
-    fib_inpout.grid_propagate = False
+    def motif_click(self):
+        """ Find motif """
 
-    fib_results = tb.Label(fib_inpout, bootstyle='default', text='Number of rabbits: ')
-    fib_results.grid(row=0, column=0, sticky='nswe')
+        motif_positions = {}
 
+        for id in input_sequences:
+            motif_positions[id] = standard_funcs.find_motifs(input_sequences[id], self.motif_input.get())
 
-    #motif tab
-    def browse_dirs():
-        """ Open directory browser """
+        self.output.config(state='normal')
+        self.output.delete('1.0', 'end')
+        self.output.insert('1.0', f'{seq_info}\n\n\n')
+        self.output.insert('end', f'Start indexes of motif "{self.motif_input.get()}":\n\n')
+        for id in motif_positions:
+            self.output.insert('end', f'{id}: {", ".join(str(x) for x in motif_positions[id])}\n')
+        self.output.config(state='disabled')
 
-        global path
+    def consensus_click(self):
+        """ Find consensus sequence """
+
+        seqs_list = [input_sequences[id] for id in input_sequences]
+    
+        consensus = standard_funcs.find_consensus(seqs_list)
+
+        self.output.config(state='normal')
+        self.output.delete('1.0', 'end')
+        self.output.insert('1.0', f'{seq_info}\n\n\n')
+        self.output.insert('end', f'Consensus sequence:\n\n')
+        self.output.insert('end', consensus)
+        self.output.config(state='disabled')
+
+    def substring_click(self):
+        """ Find longest substring """
+        return
+
+    def superstring_click(self):
+        """ Find superstring """
+        return
+
+    def browse_dirs(self):
+        """ Browse directory and get all fastas """
+
         path = os.path.dirname(askopenfilename(title="Browse directory", 
                                                filetypes=(
                                                    ('FASTA files', ('*.fasta', '*.fa', '*.fna', '*.faa')),
                                                    ('FASTQ files', ('*.fastq', '*.fq')))))
-        path_ent.delete(0, 'end')
-        path_ent.insert(0, path)
+        self.dir_entry.delete(0, 'end')
+        self.dir_entry.insert(0, path)
 
         global fastx_files
         fastx_files = [os.path.join(path, file) for file in os.listdir(path) 
@@ -261,131 +391,68 @@ def main() -> None:
         global seq_info
         seq_info = standard_funcs.list_seqinfo(fastx_files)
 
-        motif_output.config(state='normal')
-        motif_output.delete('1.0', 'end')
-        motif_output.insert('1.0', seq_info)
-        motif_output.config(state='disabled')
+        self.output.config(state='normal')
+        self.output.delete('1.0', 'end')
+        self.output.insert('1.0', seq_info)
+        self.output.config(state='disabled')
 
         global input_sequences
         input_sequences = standard_funcs.extract_seqs(fastx_files)
 
-    def motif_click():
-        """ Find motif """
+class GraphTab(tb.Frame):
+    """ Input output Graph tab """
 
-        motif_positions = {}
+    def __init__(self, parent):
+        super().__init__(parent, borderwidth=10, bootstyle='dark')
+        self.pack(fill='both', expand=True)
 
-        for id in input_sequences:
-            motif_positions[id] = standard_funcs.find_motifs(input_sequences[id], motif_input.get())
+        # Input frame
+        input_frame = tb.Frame(self, borderwidth=10, bootstyle='dark')
+        input_frame.place(relx=0, rely=0, relheight=1, relwidth=0.3)
 
-        motif_output.config(state='normal')
-        motif_output.delete('1.0', 'end')
-        motif_output.insert('1.0', f'{seq_info}\n\n\n\n')
-        motif_output.insert('end', f'Start indexes of motif {motif_input.get()}:\n\n')
-        for id in motif_positions:
-            motif_output.insert('end', f'{id}: {", ".join(str(x) for x in motif_positions[id])}\n')
-        motif_output.config(state='disabled')
+        file_label = tb.Label(input_frame, text='Fastx file: ', width=22)
+        file_label.pack(anchor='w', padx=5, pady=10)
 
-    def consensus_click():
-        """ Find consensus sequence """
+        self.file_ent = tb.Entry(input_frame, width=36)
+        self.file_ent.pack(anchor='w', padx=5)
+        self.file_ent.insert('end', os.getcwd())
 
-        seqs_list = [input_sequences[id] for id in input_sequences]
-    
-        consensus = standard_funcs.find_consensus(seqs_list)
-    
-        motif_output.config(state='normal')
-        motif_output.delete('1.0', 'end')
-        motif_output.insert('1.0', f'{seq_info}\n\n\n\n')
-        motif_output.insert('end', f'Consensus sequence:\n\n')
-        motif_output.insert('end', consensus)
-        motif_output.config(state='disabled')
+        browse_button = tb.Button(input_frame, text="Browse", command=self.browse_file, width=10)
+        browse_button.pack(anchor='w', padx=5, pady=10)
 
-    def substring_click():
-        """ Find longest substring """
-        return
+        overlap_frame = tb.Frame(input_frame)
+        overlap_frame.pack(anchor='w', pady=20)
 
-    def superstring_click():
-        """ Find superstring """
-        return
+        overlap_label = tb.Label(overlap_frame, text='Overlap:', width=14)
+        overlap_label.pack(side='left', padx=5)
 
-    motif_exp = tb.Frame(motif_tab, height=350, width=950, bootstyle="dark")
-    motif_exp.grid(row=0, column=0, padx=10, pady=10, columnspan=2)
-    motif_exp.grid_propagate(False)
+        self.overlap_entry = tb.Entry(overlap_frame, width=1)
+        self.overlap_entry.pack(side='left', padx=5, pady=5, anchor='w')
 
-    motif_text = tb.Text(motif_exp, font='Calibri, 15', height=15, width=97)
-    motif_text.pack(fill='both', expand='True', anchor='center')
-    motif_text.insert('1.0', 'Some operations for handling multiple sequences.\n' 
-                      'Selecting any file will read out all fastX files in the directory. \n\n'
-                      'Motif:\nFind the given motif in all sequences '
-                      '(https://rosalind.info/problems/subs/)\n\n'
-                      'Consensus: \nFind the consensus string of sequences of equal length '
-                      '(https://rosalind.info/problems/cons/)\n\n'
-                      'Substring: \nFind the longest common substring in all sequences '
-                      '(https://rosalind.info/problems/lcsm/)\n\n'
-                      'Superstring: \nFind the shortest superstring containing all given sequences '
-                      '(https://rosalind.info/problems/long/)')
-    motif_text.config(state=DISABLED)
+        save_frame = tb.Frame(input_frame)
+        save_frame.pack(anchor='w')
 
-    #Input frame
-    motif_inp = tb.Frame(motif_tab, borderwidth=10, height=50, width=950, bootstyle="dark")
-    motif_inp.grid(row=1, column=0, padx=10, pady=10, columnspan=2)
-    motif_inp.grid_propagate(False)
+        save_label = tb.Label(save_frame, text='Save output?', width=14)
+        save_label.pack(side='left', padx=5, pady=5)
 
-    #Path input
-    path = os.getcwd()
-    path_row = tb.Frame(motif_inp)
-    path_row.pack(fill='both', expand='True')
-    path_lbl = tb.Label(path_row, text="Fasta dir:", width=10)
-    path_lbl.pack(side='left', padx=10)
-    path_ent = tb.Entry(path_row, width=80)
-    path_ent.pack(side='left', fill='both', expand='True', padx=5)
-    path_ent.insert(0, path)
-    browse_btn = tb.Button(
-        master=path_row, 
-        text="Browse", 
-        command=browse_dirs, 
-        width=8
-    )
-    browse_btn.pack(side='right', padx=10)
+        self.open_image_var = tb.BooleanVar(value = True)
+        save_checkbox = tb.Checkbutton(save_frame, variable=self.open_image_var)
+        save_checkbox.pack(side='left', padx=5)
 
-    #Button frame
-    motif_but = tb.Frame(motif_tab, height=270, width=270, bootstyle="dark")
-    motif_but.grid(row=2, column=0, sticky='nw', padx=10, pady=10)
-    motif_but.grid_propagate = False
+        # Output frame
+        output_frame = tb.Frame(self, borderwidth=10, bootstyle='dark')
+        output_frame.place(rely=0.1, relx=0.35, relheight=1, relwidth=0.65)
 
-    #Buttons
-    motif_button = tb.Button(motif_but, bootstyle='light', width=15, text='Find motif', command=motif_click)
-    motif_button.pack(pady=8,padx=10, anchor='w')
+        self.output_image = tb.Label(output_frame, image='')
 
-    motif_input = tb.Entry(motif_but, width=19, font=('Calibri', 15))
-    motif_input.pack(pady=2, padx=10, anchor='w')
 
-    consensus_button = tb.Button(motif_but, bootstyle='light', width=15, text='Consensus', command=consensus_click)
-    consensus_button.pack(pady=8, padx=10, anchor='w')
-
-    substring_button = tb.Button(motif_but, bootstyle='light', width=15, text='Substring', command=substring_click)
-    substring_button.pack(pady=8, padx=10, anchor='w')
-
-    superstring_button = tb.Button(motif_but, bootstyle='light', width=15, text='Superstring', command=superstring_click)
-    superstring_button.pack(pady=8, padx=10, anchor='w')
-
-    #Output frame
-    motif_out = tb.Frame(motif_tab, height=270, width=900, bootstyle="dark")
-    motif_out.grid(row=2, column=1, pady=10, sticky='nw')
-    motif_out.grid_propagate = False
-
-    motif_output = tb.Text(motif_out, height=15, width=66, font=('Calibri',13), wrap=CHAR)
-    motif_output.pack()
-    motif_output.configure(state='disabled')
-
-    #Graph tab
-    def browse_file():
-        """ Open single FASTA file """
-
+    def browse_file(self):
+        """ Browse files and graph """
         file_path = askopenfilename(title="Browse directory", 
                                filetypes=(('FASTA files', ('*.fasta', '*.fa', '*.fna', '*.faa')),
                                           ('FASTQ files', ('*.fastq', '*.fq'))))
-        graph_path_ent.delete(0, 'end')
-        graph_path_ent.insert(0, file_path)
+        self.file_ent.delete(0, 'end')
+        self.file_ent.insert(0, file_path)
 
         if standard_funcs.guess_format(f'{file_path}') not in ['fasta', 'fastq'] and not file_path.rstrip() == '':
             Messagebox.ok('Not a valid fastx file.', 'Invalid input')
@@ -393,7 +460,7 @@ def main() -> None:
 
         input_sequences = standard_funcs.extract_seqs([file_path])
 
-        overlap = graph_overlap_ent.get()
+        overlap = self.overlap_entry.get()
         overlap = overlap.rstrip()
 
         if not overlap.isdigit():
@@ -404,85 +471,27 @@ def main() -> None:
 
         dot = standard_funcs.visualize_graphs(standard_funcs.list_overlaps(input_sequences, overlap))
         overlap_graph = f'{os.path.join(os.path.dirname(file_path), "out")}'
-        dot.render(overlap_graph, view=open_image_var.get(), format='png')
+        dot.render(overlap_graph, view=self.open_image_var.get(), format='png')
 
         graph_image = Image.open(f'{overlap_graph}.png')
 
-        if not open_image_var.get():
+        if not self.open_image_var.get():
             base_width = 680
             wpercent = (base_width / float(graph_image.size[0]))
             hsize = int((float(graph_image.size[1]) * float(wpercent)))
             graph_image = graph_image.resize((base_width, hsize), Image.Resampling.LANCZOS)
 
             graph_image = ImageTk.PhotoImage(graph_image)
-            graph_image_lbl.config(image=graph_image)
-            graph_image_lbl.image = graph_image
-            graph_image_lbl.pack(side='top', fill='both', expand='true')
+            self.output_image.config(image=graph_image)
+            self.output_image.image = graph_image
+            self.output_image.pack(side='top', fill='both', expand='true')
 
-        if not open_image_var.get():
+        if not self.open_image_var.get():
             os.remove(f'{overlap_graph}.png')
             os.remove(f'{overlap_graph}')
 
 
-    graph_exp = tb.Frame(graph_tab, borderwidth=10, height=50, width=1000, bootstyle="dark")
-    graph_exp.pack(padx=10, pady=10, anchor='w')
-
-    graph_text = tb.Text(graph_exp, font='Calibri, 15', height=4, width=200)
-    graph_text.pack(fill='both', expand=True)
-    graph_text.insert('1.0', 'Create an overlap graph from the given sequences in FASTX format. Images are saved to a file\n'
-                      'and opened by default. Check the box to print to the app instead (does not work well for large graphs).\n' 
-                      'https://rosalind.info/problems/grph/')
-    graph_text.config(state=DISABLED)
-
-    graph_inp = tb.Frame(graph_tab, borderwidth=10, height=500, width=1000, bootstyle="dark")
-    graph_inp.pack(padx=10, pady=5, anchor='w', fill='both', expand=True)
-
-    graph_left = tb.Frame(graph_inp, height=480, width=200, borderwidth=5, bootstyle='dark')
-    graph_left.grid(row=0, column=0, pady=10, padx=5, sticky='nw')
-    graph_left.grid_propagate = False
-
-    graph_right = tb.Frame(graph_inp, height=480, width=750, borderwidth=5, bootstyle='dark')
-    graph_right.grid(row=0, column=1, pady=10, padx=5, sticky='e')
-
-
-    graph_path_lbl = tb.Label(graph_left, text="Fastx file:", width=10)
-    graph_path_lbl.pack(padx=10, pady=10, side='top', anchor='nw')
-    graph_path_ent = tb.Entry(graph_left, width=30)
-    graph_path_ent.pack(padx=10, pady=5, side='top', anchor='nw')
-    graph_path_ent.insert(0, path)
-    graph_browse_btn = tb.Button(
-        master=graph_left, 
-        text="Browse", 
-        command=browse_file, 
-        width=8
-    )
-    graph_browse_btn.pack(padx=10, pady=2, side='top', anchor='nw')
-
-    overlap_frame = tb.Frame(graph_left)
-    overlap_frame.pack(padx=10, pady=20, side='top', anchor='nw')
-
-    graph_overlap_lbl = tb.Label(overlap_frame, text='Overlap: ', width=14)
-    graph_overlap_lbl.grid(column=0, row=0, pady=10, sticky='nw')
-
-    graph_overlap_ent = tb.Entry(overlap_frame, width=2)
-    graph_overlap_ent.grid(column=1, row=0, pady=10, padx=10, sticky='e')
-
-    image_options_frame = tb.Frame(graph_left)
-    image_options_frame.pack(padx=10, side='top', anchor='nw')
-
-    open_image_lbl = tb.Label(image_options_frame, text='Save output?', width=12)
-    open_image_lbl.grid(row=0, column=0, pady=5, sticky='nw')
-
-    open_image_var = tb.BooleanVar(value = True)
-    open_image_check = tb.Checkbutton(image_options_frame, variable=open_image_var)
-    open_image_check.grid(row=0, column=1, padx=25, pady=5, sticky='e')
-
-    graph_image_lbl = tb.Label(graph_right, image='')
-
-
-    root.mainloop()
-
-
 # --------------------------------------------------
 if __name__ == '__main__':
-    main()
+    solver = RosalindSolver()
+    solver.mainloop()
